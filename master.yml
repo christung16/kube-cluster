@@ -1,0 +1,50 @@
+- hosts: master
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16 >> cluster_initialized.txt
+      register: cmd_output
+
+    - name: Copy output to a file
+      copy:
+        content: "{{ cmd_output }}"
+        dest: "$HOME/cluster_initialized.txt"
+      delegate_to: localhost
+
+    - name: create user account tetration
+      user:
+        name: tetration
+        shell: /bin/bash
+        password: C1sc0123
+
+    - name: create .kube directory
+      become: yes
+      become_user: tetration
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+      tags: create_dir
+
+    - name: copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/tetration/.kube/config
+        remote_src: yes
+        owner: tetration
+        group: tetration
+
+    - name: install Pod network
+      become: yes
+      become_user: tetration
+      shell: kubectl apply -f https://docs.projectcalico.org/v3.11/manifests/calico.yaml
+      register: cmd_output
+
+    - name: Copy output to a file
+      become: yes
+      become_user: tetration
+      copy:
+        content: "{{ cmd_output }}"
+        dest: "$HOME/pod_network_setup.txt"
+      delegate_to: localhost
+

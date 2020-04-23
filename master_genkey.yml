@@ -1,0 +1,40 @@
+- hosts: master
+  become: yes
+  tasks:
+    - name: Generate Key
+      command: openssl genrsa -out tetration.key 2048
+      args:
+        chdir: /home/tetration
+
+    - name: Generate Certificate
+      command: openssl req -new -key tetration.key -out tetration.csr -subj "/CN=tetration"
+      args:
+        chdir: /home/tetration
+
+    - name: Sign Cert
+      command: openssl x509 -req -in tetration.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out tetration.crt -days 3650
+      args:
+        chdir: /home/tetration
+
+    - name: copy role-binding.yml to master
+      copy:
+        src: ~/kube-cluster/role-binding.yml
+        dest: /home/tetration/role-binding.yml
+        owner: tetration
+        group: tetration
+        mode: 0644
+        follow: yes
+    
+    - name: kubectl apply the role
+      become: yes
+      become_user: tetration
+      command: kubectl apply -f /home/tetration/role-binding.yml  
+      register: cmd_output
+
+    - name: copy output to file
+      become: yes
+      become_user: tetration
+      copy:
+        content: "{{ cmd_output }}"
+        dest: /home/tetration/apply_role.txt
+        follow: yes
