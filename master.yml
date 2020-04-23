@@ -9,6 +9,7 @@
       copy:
         content: "{{ cmd_output }}"
         dest: "$HOME/cluster_initialized.txt"
+        follow: yes
       delegate_to: localhost
 
     - name: create user account tetration
@@ -33,6 +34,7 @@
         remote_src: yes
         owner: tetration
         group: tetration
+        follow: yes
 
     - name: install Pod network
       become: yes
@@ -46,5 +48,6 @@
       copy:
         content: "{{ cmd_output }}"
         dest: "$HOME/pod_network_setup.txt"
+        follow: yes
       delegate_to: localhost
 
